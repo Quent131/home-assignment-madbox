@@ -1,10 +1,14 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { Translator } from "deepl-node";
-import express, { Request, Response } from "express";
+import express, { Request, Response, Express } from "express";
 import { Word } from "@madbox-assignment/types";
+import cors from "cors";
+
 const prisma = new PrismaClient();
-const app = express();
+const app: Express = express();
+
+app.use(cors());
 
 const translator = new Translator(process.env.DEEPL_API_KEY);
 
