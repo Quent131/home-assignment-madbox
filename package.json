@@ -1,0 +1,8 @@
+{
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "name": "home-assignment-madbox",
+  "packageManager": "yarn@4.2.2"
+}
