@@ -2,3 +2,4 @@ node_modules
 # Keep environment variables out of version control
 .env
 docker-compose.yml
+academic-empire-292409-cd19ccb98e65.json
