@@ -1,17 +1,19 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiService } from "./api";
 import {
   ActionIcon,
   Alert,
+  Button,
   Loader,
   Modal,
+  Table,
   TextInput,
   Title,
 } from "@mantine/core";
-import { QuestionMarkCircledIcon } from "@radix-ui/react-icons";
+import { BarChartIcon, QuestionMarkCircledIcon } from "@radix-ui/react-icons";
 import { useDisclosure } from "@mantine/hooks";
 import { v4 as uuidv4 } from "uuid";
-import { Game } from "@madbox-assignment/types";
+import { Game, Leaderboard } from "@madbox-assignment/types";
 import { useEffect, useMemo, useState } from "react";
 
 const LOCAL_STORAGE_KEY = "game-player-data";
@@ -22,9 +24,12 @@ const setLocalStorage = (data: Game) => {
 
 function App() {
   const [answer, setAnswer] = useState("");
+  const [playerName, setPlayerName] = useState("");
+  const [playerNameError, setPlayerNameError] = useState(false);
   const [lastRoundResult, setLastRoundResult] = useState<
     "success" | "error" | undefined
   >();
+
   const localStorageData = localStorage.getItem(LOCAL_STORAGE_KEY);
   const playerData: Game = useMemo(
     () =>
@@ -41,12 +46,6 @@ function App() {
 
   setLocalStorage(playerData);
 
-  // const renderCountRef = useRef(0);
-  // useEffect(() => {
-  //   renderCountRef.current++;
-  //   console.log(`Rendered ${name} ${renderCountRef.current} times`);
-  // });
-
   const { data, isLoading } = useQuery({
     queryKey: ["word"],
     queryFn: () => {
@@ -54,6 +53,18 @@ function App() {
       return apiService.getWordById(playerData.currentWordId);
     },
     staleTime: 60000,
+  });
+  const { data: leaderboardData } = useQuery({
+    queryKey: ["leaderboard"],
+    queryFn: apiService.getLeaderboard,
+    staleTime: 60000,
+  });
+
+  const { mutate } = useMutation({
+    mutationFn: apiService.submitLeaderboard,
+    onSuccess: (data) => {
+      queryClient.setQueryData(["leaderboard"], data);
+    },
   });
 
   useEffect(() => {
@@ -64,14 +75,18 @@ function App() {
   }, [data, playerData]);
 
   const [opened, { open, close }] = useDisclosure();
-  // const [
-  //   victoryModalOpened,
-  //   { open: openVictoryModal, close: closeVictoryModal },
-  // ] = useDisclosure();
-  // const [
-  //   defeatModalOpened,
-  //   { open: openDefeatModal, close: closeDefeatModal },
-  // ] = useDisclosure();
+  const [
+    victoryModalOpened,
+    { open: openVictoryModal, close: closeVictoryModal },
+  ] = useDisclosure();
+  const [
+    defeatModalOpened,
+    { open: openDefeatModal, close: closeDefeatModal },
+  ] = useDisclosure();
+  const [
+    leaderboardModalOpened,
+    { open: openLeaderboardModal, close: closeLeaderboardModal },
+  ] = useDisclosure();
 
   const queryClient = useQueryClient();
   const handleGuess = () => {
@@ -84,11 +99,9 @@ function App() {
     }
 
     if (playerData.points === 20) {
-      alert("You won!");
-      playerData.points = 10;
+      openVictoryModal();
     } else if (playerData.points === 0) {
-      alert("You lost!");
-      playerData.points = 10;
+      openDefeatModal();
     }
 
     playerData.currentWordId = 0;
@@ -98,7 +111,27 @@ function App() {
     queryClient.invalidateQueries({ queryKey: ["word"] });
   };
 
-  return data ? (
+  const handleCloseResultModal = (closeModalFunction: () => void) => {
+    playerData.points = 10;
+    playerData.currentWordId = 0;
+    playerData.totalTries = 0;
+    setLocalStorage(playerData);
+    setLastRoundResult(undefined);
+    setPlayerName("");
+    closeModalFunction();
+  };
+
+  const handleSubmitLeaderboard = () => {
+    if (playerName.length === 0) {
+      setPlayerNameError(true);
+      return;
+    }
+    mutate({ name: playerName, score: playerData.totalTries });
+    handleCloseResultModal(closeVictoryModal);
+    openLeaderboardModal();
+  };
+
+  return data && leaderboardData ? (
     <div className="p-8 justify-center">
       <Modal opened={opened} onClose={close} title="About Translatle" centered>
         Translatle is a simple application that displays a random French verb
@@ -111,12 +144,50 @@ function App() {
         <br />
         <p className="text-center pt-4">Good luck!</p>
       </Modal>
-      {/* <Modal
-        opened={resultModalOpened}
-        onClose={closeResultModal}
+      <Modal
+        opened={victoryModalOpened}
+        onClose={() => handleCloseResultModal(closeVictoryModal)}
         centered
         title="Congratulations !"
-      ></Modal> */}
+      >
+        <p className="pb-4">
+          Good job ! You defeated Translatle. <br />
+          It took you <b>{playerData.totalTries} tries</b>. <br /> <br />
+          If you want to leave your mark, you can share your name with us so
+          that we can enter it in the leaderboard.
+        </p>
+        <div className="flex justify-between">
+          <TextInput
+            value={playerName}
+            onChange={(event) => {
+              setPlayerName(event.currentTarget.value);
+              setPlayerNameError(false);
+            }}
+            error={playerNameError}
+          />
+          <Button onClick={handleSubmitLeaderboard}>Submit</Button>
+        </div>
+      </Modal>
+      <Modal
+        opened={defeatModalOpened}
+        onClose={() => handleCloseResultModal(closeDefeatModal)}
+        centered
+        title="Bad luck !"
+      >
+        <p>
+          Sorry, you ran out of points. <br />
+          You made <b>{playerData.totalTries} tries</b>. <br />
+          Better luck next time !
+        </p>
+      </Modal>
+      <Modal
+        opened={leaderboardModalOpened}
+        onClose={closeLeaderboardModal}
+        centered
+        title="Leaderboard"
+      >
+        <LeaderboardTable data={leaderboardData} />
+      </Modal>
       <div className="flex flex-col gap-5">
         <Title order={1} className="text-center">
           Translatle
@@ -125,6 +196,13 @@ function App() {
           <p>Welcome to Translatle.</p>
           <ActionIcon onClick={open} variant="subtle" color="white">
             <QuestionMarkCircledIcon />
+          </ActionIcon>
+          <ActionIcon
+            onClick={openLeaderboardModal}
+            variant="subtle"
+            color="white"
+          >
+            <BarChartIcon />
           </ActionIcon>
         </div>
         {isLoading ? (
@@ -172,6 +250,33 @@ function App() {
 
 const Letter = () => {
   return <div className="p-3 border-b-2" />;
+};
+
+const LeaderboardTable = ({ data }: { data: Leaderboard[] }) => {
+  return (
+    <Table>
+      <Table.Thead>
+        <Table.Tr>
+          <Table.Th>Rank</Table.Th>
+          <Table.Th>Player</Table.Th>
+          <Table.Th>Score</Table.Th>
+          <Table.Th>Date</Table.Th>
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {data.map((entry, index) => (
+          <Table.Tr key={entry.id}>
+            <Table.Td>{index + 1}</Table.Td>
+            <Table.Td>{entry.player}</Table.Td>
+            <Table.Td>{entry.score}</Table.Td>
+            <Table.Td>
+              {new Date(entry.createdAt).toLocaleDateString()}
+            </Table.Td>
+          </Table.Tr>
+        ))}
+      </Table.Tbody>
+    </Table>
+  );
 };
 
 export default App;

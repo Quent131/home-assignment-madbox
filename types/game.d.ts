@@ -4,3 +4,10 @@ export type Game = {
   points: number;
   totalTries: number;
 };
+
+export type Leaderboard = {
+  id: number;
+  player: string;
+  score: number;
+  createdAt: string;
+};
