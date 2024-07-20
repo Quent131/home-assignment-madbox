@@ -34,6 +34,23 @@ app.get("/api/word", async (req: Request, res: Response<Word>) => {
   });
 });
 
+app.get("/api/word/:id", async (req: Request, res: Response<Word>) => {
+  const id = parseInt(req.params.id);
+  const { verb } = await prisma.verb.findFirst({
+    where: { id },
+    select: { verb: true },
+  });
+
+  const { text } = await translator.translateText(verb, null, "en-GB");
+  res.send({
+    id,
+    french: verb,
+    english: text,
+    length: text.length,
+    firstLetter: text[0],
+  });
+});
+
 const port = process.env.PORT || 3333;
 const server = app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}/api`);

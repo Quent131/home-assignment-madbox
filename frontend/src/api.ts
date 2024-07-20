@@ -8,4 +8,9 @@ export const apiService = {
     const { data } = await api.get<Word>("/word");
     return data;
   },
+
+  getWordById: async (id: number) => {
+    const { data } = await api.get<Word>(`/word/${id}`);
+    return data;
+  },
 };
