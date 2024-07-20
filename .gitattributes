@@ -2,3 +2,7 @@
 /.yarn/releases/*    binary
 /.yarn/plugins/**/*  binary
 /.pnp.*              binary linguist-generated
+
+#pattern  filter=crypt diff=crypt merge=crypt
+.env  filter=crypt diff=crypt merge=crypt
+docker-compose.yml filter=crypt diff=crypt merge=crypt
