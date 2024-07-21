@@ -46,7 +46,7 @@ function App() {
 
   setLocalStorage(playerData);
 
-  const { data, isLoading } = useQuery({
+  const { data, isFetching } = useQuery({
     queryKey: ["word"],
     queryFn: () => {
       if (playerData.currentWordId === 0) return apiService.getWord();
@@ -205,7 +205,7 @@ function App() {
             <BarChartIcon />
           </ActionIcon>
         </div>
-        {isLoading ? (
+        {isFetching ? (
           <Loader />
         ) : (
           <div className="flex flex-col gap-5">
