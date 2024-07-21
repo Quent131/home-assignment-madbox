@@ -11,7 +11,7 @@ import {
   Title,
 } from "@mantine/core";
 import { BarChartIcon, QuestionMarkCircledIcon } from "@radix-ui/react-icons";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useFocusTrap } from "@mantine/hooks";
 import { v4 as uuidv4 } from "uuid";
 import { Game, Leaderboard } from "@madbox-assignment/types";
 import { useEffect, useMemo, useState } from "react";
@@ -87,6 +87,8 @@ function App() {
     leaderboardModalOpened,
     { open: openLeaderboardModal, close: closeLeaderboardModal },
   ] = useDisclosure();
+
+  const focusTrapRef = useFocusTrap();
 
   const queryClient = useQueryClient();
   const handleGuess = () => {
@@ -205,44 +207,47 @@ function App() {
             <BarChartIcon />
           </ActionIcon>
         </div>
-        {isFetching ? (
-          <Loader />
-        ) : (
-          <div className="flex flex-col gap-5">
-            <p className="text-center">Your score : {playerData.points}</p>
-            {lastRoundResult &&
-              (lastRoundResult === "success" ? (
-                <Alert className="text-center" color="green">
-                  Correct!
-                </Alert>
-              ) : (
-                <Alert className="text-center" color="red">
-                  Incorrect!
-                </Alert>
-              ))}
-            <p>French verb : {data?.french}</p>
-            <div className="flex justify-center gap-2">
-              <p className="capitalize text-2xl">{data?.firstLetter}</p>
-              {data.english
-                .slice(1)
-                .split("")
-                .map((_, ind) => (
-                  <Letter key={`letter_${ind}`} />
-                ))}
-            </div>
-            <TextInput
-              value={answer}
-              onChange={(event) => setAnswer(event.currentTarget.value)}
-              classNames={{
-                input: "w-1/2 text-center text-xl",
-                wrapper: "flex justify-center",
-              }}
-              onKeyUp={(event) => {
-                if (event.key === "Enter") handleGuess();
-              }}
-            />
-          </div>
-        )}
+        <div className="flex flex-col gap-5">
+          <p className="text-center">Your score : {playerData.points}</p>
+          {lastRoundResult &&
+            (lastRoundResult === "success" ? (
+              <Alert className="text-center" color="green">
+                Correct!
+              </Alert>
+            ) : (
+              <Alert className="text-center" color="red">
+                Incorrect!
+              </Alert>
+            ))}
+          {isFetching ? (
+            <Loader />
+          ) : (
+            <>
+              <p>French verb : {data?.french}</p>
+              <div className="flex justify-center gap-2">
+                <p className="capitalize text-2xl">{data?.firstLetter}</p>
+                {data.english
+                  .slice(1)
+                  .split("")
+                  .map((_, ind) => (
+                    <Letter key={`letter_${ind}`} />
+                  ))}
+              </div>
+              <TextInput
+                value={answer}
+                onChange={(event) => setAnswer(event.currentTarget.value)}
+                classNames={{
+                  input: "w-1/2 text-center text-xl",
+                  wrapper: "flex justify-center",
+                }}
+                onKeyUp={(event) => {
+                  if (event.key === "Enter") handleGuess();
+                }}
+                ref={focusTrapRef}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   ) : null;
