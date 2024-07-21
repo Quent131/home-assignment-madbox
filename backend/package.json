@@ -2,7 +2,9 @@
   "name": "backend",
   "packageManager": "yarn@4.2.2",
   "scripts": {
-    "dev": "ts-node src/index.ts"
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "@google-cloud/translate": "^8.3.0",
